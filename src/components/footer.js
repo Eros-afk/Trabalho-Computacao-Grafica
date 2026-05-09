@@ -13,8 +13,8 @@ export function renderFooter() {
           <div class="footer-col">
             <h3>Navegar</h3>
             <ul>
+              <li><a href="#/" onclick="event.preventDefault(); navigate('/')">Home</a></li>
               <li><a href="#/catalog" onclick="event.preventDefault(); navigate('/catalog')">Catálogo</a></li>
-              <li><a href="#/catalog?cat=living" onclick="event.preventDefault(); navigate('/catalog?cat=living')">Sala</a></li>
             </ul>
           </div>
           <div class="footer-newsletter">

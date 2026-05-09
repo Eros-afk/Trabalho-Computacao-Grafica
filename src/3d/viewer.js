@@ -1,6 +1,16 @@
-import { $ } from "../utils/dom.js";
+import { $, $$ } from "../utils/dom.js";
 
 let viewer3D = null;
+let currentModel = null;
+let originalMaterials = null;
+
+const customMaterials = {
+  default: null,
+  wood: { color: 0x8B4513, roughness: 0.8, metalness: 0.0 },
+  metal: { color: 0xAAAAAA, roughness: 0.1, metalness: 0.9 },
+  leather: { color: 0x3d2314, roughness: 0.6, metalness: 0.0 },
+  white: { color: 0xF5F5F5, roughness: 0.3, metalness: 0.0 }
+};
 
 export async function init3DViewer(modelPath) {
   const modal = $("#viewer-3d");
@@ -11,6 +21,7 @@ export async function init3DViewer(modelPath) {
   }
   
   modal.classList.remove("hidden");
+  renderMaterialControls();
   
   await new Promise(resolve => setTimeout(resolve, 200));
   
@@ -53,8 +64,6 @@ export async function init3DViewer(modelPath) {
     fill.position.set(-5, 3, -5);
     scene.add(fill);
     
-    scene.add(new THREE.GridHelper(10, 20, 0xcccccc, 0xe5e5e5));
-    
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(10, 10),
       new THREE.ShadowMaterial({ opacity: 0.1 })
@@ -64,27 +73,29 @@ export async function init3DViewer(modelPath) {
     scene.add(floor);
     
     const loader = new GLTFLoader();
+    originalMaterials = new Map();
     
     try {
       const gltf = await loader.loadAsync(`/3d_visualization/models/${modelPath}/scene.gltf`);
-      const model = gltf.scene;
+      currentModel = gltf.scene;
       
-      model.traverse((child) => {
+      currentModel.traverse((child) => {
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
+          originalMaterials.set(child.uuid, child.material.clone());
         }
       });
       
-      const box = new THREE.Box3().setFromObject(model);
+      const box = new THREE.Box3().setFromObject(currentModel);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       
-      model.position.sub(center);
-      model.position.y = size.y / 2;
-      model.scale.multiplyScalar(3 / Math.max(size.x, size.y, size.z));
+      currentModel.position.sub(center);
+      currentModel.position.y = size.y / 2;
+      currentModel.scale.multiplyScalar(3 / Math.max(size.x, size.y, size.z));
       
-      scene.add(model);
+      scene.add(currentModel);
     } catch (e) {
       console.error("Erro modelo:", e.message);
     }
@@ -96,7 +107,7 @@ export async function init3DViewer(modelPath) {
     controls.maxDistance = 15;
     controls.maxPolarAngle = Math.PI / 2 - 0.1;
     
-    viewer3D = { scene, camera, renderer, controls, active: true };
+    viewer3D = { scene, camera, renderer, controls, active: true, THREE };
     
     const animate = () => {
       if (viewer3D && viewer3D.active) {
@@ -114,7 +125,72 @@ export async function init3DViewer(modelPath) {
   }
 }
 
+function applyMaterial(materialType) {
+  if (!currentModel || !viewer3D || !originalMaterials) return;
+  
+  const THREE = viewer3D.THREE;
+  
+  currentModel.traverse((child) => {
+    if (child.isMesh) {
+      if (materialType === "default") {
+        const original = originalMaterials.get(child.uuid);
+        if (original) child.material = original.clone();
+      } else if (customMaterials[materialType]) {
+        const mat = customMaterials[materialType];
+        child.material = new THREE.MeshStandardMaterial({
+          color: mat.color,
+          roughness: mat.roughness,
+          metalness: mat.metalness
+        });
+      }
+    }
+  });
+  
+  $$(".material-option").forEach(btn => {
+    btn.classList.remove("active");
+    if (btn.dataset.material === materialType) {
+      btn.classList.add("active");
+    }
+  });
+}
+
+function renderMaterialControls() {
+  const controlsContainer = $("#viewer-3d-material-controls");
+  if (!controlsContainer) return;
+  
+  controlsContainer.innerHTML = `
+    <div class="viewer-3d-material-title">Material</div>
+    <div class="viewer-3d-material-options">
+      <button class="material-option active" data-material="default" onclick="window.changeMaterial('default')">
+        <span class="material-swatch" style="background: linear-gradient(135deg, #8B4513 0%, #654321 100%)"></span>
+        Original
+      </button>
+      <button class="material-option" data-material="wood" onclick="window.changeMaterial('wood')">
+        <span class="material-swatch" style="background: linear-gradient(135deg, #8B4513 0%, #5D3A1A 100%)"></span>
+        Madeira
+      </button>
+      <button class="material-option" data-material="metal" onclick="window.changeMaterial('metal')">
+        <span class="material-swatch" style="background: linear-gradient(135deg, #CCCCCC 0%, #888888 100%)"></span>
+        Metal
+      </button>
+      <button class="material-option" data-material="leather" onclick="window.changeMaterial('leather')">
+        <span class="material-swatch" style="background: linear-gradient(135deg, #3D2314 0%, #2A1A0F 100%)"></span>
+        Couro
+      </button>
+      <button class="material-option" data-material="white" onclick="window.changeMaterial('white')">
+        <span class="material-swatch" style="background: linear-gradient(135deg, #FFFFFF 0%, #E0E0E0 100%)"></span>
+        Branco
+      </button>
+    </div>
+  `;
+}
+
+window.changeMaterial = applyMaterial;
+
 export function close3DViewer() {
+  currentModel = null;
+  originalMaterials = null;
+  
   if (viewer3D) {
     viewer3D.active = false;
     if (viewer3D.renderer) viewer3D.renderer.dispose();
