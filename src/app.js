@@ -54,5 +54,5 @@ document.addEventListener("DOMContentLoaded", () => {
   renderFooter();
   route();
   
-  console.log("LUXURA ready!");
+  console.log("VideoBoard Móveis ready!");
 });

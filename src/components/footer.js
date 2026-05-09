@@ -7,7 +7,7 @@ export function renderFooter() {
       <div class="container">
         <div class="footer-grid">
           <div>
-            <div class="footer-brand">LUXURA</div>
+            <div class="footer-brand">VideoBoard Móveis</div>
             <p class="footer-tagline">Luxo silencioso para o lar moderno.</p>
           </div>
           <div class="footer-col">
@@ -26,7 +26,7 @@ export function renderFooter() {
             </form>
           </div>
         </div>
-        <div class="footer-bottom">© 2024 LUXURA.</div>
+        <div class="footer-bottom">© 2024 VideoBoard Móveis.</div>
       </div>
     </footer>
   `);
