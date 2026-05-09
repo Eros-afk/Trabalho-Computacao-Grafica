@@ -1,8 +1,8 @@
 import { fmt } from "../utils/dom.js";
 
-export function renderProductCard(product) {
+export function renderProductCard(product, navigateFn) {
   return `
-    <article class="product-card" data-product-id="${product.id}">
+    <article class="product-card" data-product-id="${product.id}" onclick="event.preventDefault(); navigate('/product/${product.id}')">
       <div class="product-image">
         <img src="${product.thumbnail}" alt="${product.name}">
         <span class="product-badge">Em Estoque</span>
