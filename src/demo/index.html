@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kill — Cena Base | Móveis 3D</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1714;
+      font-family: 'Courier New', monospace;
+      color: #c8bfb0;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    header {
+      padding: 12px 20px;
+      background: #111;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    header .tag {
+      background: #4ade80;
+      color: #000;
+      padding: 2px 8px;
+      border-radius: 2px;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    header .title { color: #fff; font-size: 13px; }
+    header .subtitle { color: #666; margin-left: auto; }
+
+    .canvas-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+
+    #canvas3d {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* HUD de debug */
+    .hud {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 11px;
+      line-height: 1.8;
+      pointer-events: none;
+    }
+    .hud .label { color: #666; }
+    .hud .val   { color: #4ade80; margin-left: 4px; }
+
+    /*  Legenda de controles */
+
+    .controls-hint {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      border: 1px solid #2a2a2a;
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 11px;
+      line-height: 1.9;
+      color: #888;
+    }
+    .controls-hint kbd {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-family: inherit;
+      font-size: 10px;
+      color: #ccc;
+    }
+
+    footer {
+      padding: 8px 20px;
+      background: #111;
+      border-top: 1px solid #222;
+      font-size: 10px;
+      color: #444;
+      display: flex;
+      gap: 20px;
+    }
+    footer span { color: #4ade80; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="tag">Kill </div>
+  <div class="title">Cena Base — Three.js</div>
+  <div class="subtitle">Ecommerce de Móveis 3D</div>
+</header>
+
+<div class="canvas-wrapper">
+  <canvas id="canvas3d"></canvas>
+
+
+  <div class="hud">
+    <div><span class="label">câmera x:</span><span class="val" id="cx">—</span></div>
+    <div><span class="label">câmera y:</span><span class="val" id="cy">—</span></div>
+    <div><span class="label">câmera z:</span><span class="val" id="cz">—</span></div>
+    <div><span class="label">objetos na cena:</span><span class="val" id="objs">—</span></div>
+    <div><span class="label">fps:</span><span class="val" id="fps">—</span></div>
+  </div>
+
+  <div class="controls-hint">
+    <div><kbd>clique + arraste</kbd> — orbitar</div>
+    <div><kbd>scroll</kbd> — zoom</div>
+    <div><kbd>shift + arraste</kbd> — pan</div>
+  </div>
+</div>
+
+<footer>
+  <div>THREE.js <span>r160</span></div>
+  <div>OrbitControls <span>ativo</span></div>
+  <div>Shadows <span>PCFSoft</span></div>
+  <div>ToneMapping <span>ACESFilmic</span></div>
+  <div>Dev2 → <span>scene.add(model)</span></div>
+  <div>Dev3 → <span>SceneCore.addToLoop(fn)</span></div>
+</footer>
+
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+  // Inline do SceneCore
+  const loopCallbacks = new Set();
+  let scene, camera, renderer, controls;
+
+  const CONFIG = {
+    camera: { fov: 45, near: 0.1, far: 100, position: { x: 0, y: 1.6, z: 5 } },
+    controls: {
+      enableDamping: true, dampingFactor: 0.06,
+      minDistance: 1, maxDistance: 20,
+      maxPolarAngle: Math.PI / 2 - 0.05,
+      target: { x: 0, y: 0.5, z: 0 },
+    },
+    background: new THREE.Color(0xf5f0ea),
+  };
+
+  const canvas = document.getElementById('canvas3d');
+
+  // Cena
+  scene = new THREE.Scene();
+  scene.background = CONFIG.background;
+  scene.fog = new THREE.Fog(CONFIG.background, 15, 40);
+
+  // Câmera
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  camera = new THREE.PerspectiveCamera(CONFIG.camera.fov, w / h, CONFIG.camera.near, CONFIG.camera.far);
+  camera.position.set(CONFIG.camera.position.x, CONFIG.camera.position.y, CONFIG.camera.position.z);
+
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(w, h, false);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+
+  // Controls
+  controls = new OrbitControls(camera, canvas);
+  Object.assign(controls, CONFIG.controls);
+  controls.target.set(CONFIG.controls.target.x, CONFIG.controls.target.y, CONFIG.controls.target.z);
+  controls.update();
+
+  // Chão
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(30, 30),
+    new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.9, metalness: 0 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  floor.name = 'floor';
+  scene.add(floor);
+
+  //Placeholder de móvel
+  const mat = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.7, metalness: 0.1 });
+
+  // Assento
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(1, 0.1, 1), mat);
+  seat.position.set(0, 0.45, 0);
+  seat.castShadow = true;
+  seat.name = 'placeholder_seat';
+  scene.add(seat);
+
+  // Encosto
+  const back = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 0.1), mat);
+  back.position.set(0, 0.9, -0.45);
+  back.castShadow = true;
+  back.name = 'placeholder_back';
+  scene.add(back);
+
+  // Pernas
+  const legGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.44);
+  const legMat = new THREE.MeshStandardMaterial({ color: 0x5a3e28, roughness: 0.6, metalness: 0.2 });
+  [[-0.4,0,-0.4],[0.4,0,-0.4],[-0.4,0,0.4],[0.4,0,0.4]].forEach(([x,,z]) => {
+    const leg = new THREE.Mesh(legGeo, legMat);
+    leg.position.set(x, 0.22, z);
+    leg.castShadow = true;
+    scene.add(leg);
+  });
+
+  // Iluminação básica─
+  const ambient = new THREE.AmbientLight(0xfff5e6, 0.6);
+  scene.add(ambient);
+
+  const sun = new THREE.DirectionalLight(0xfff0d0, 1.2);
+  sun.position.set(4, 8, 4);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  scene.add(sun);
+
+  // Resize
+  window.addEventListener('resize', () => {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  });
+
+  // HUD de debug 
+  let lastTime = performance.now(), frames = 0, fps = 0;
+
+  // Render loop 
+  function loop() {
+    requestAnimationFrame(loop);
+    controls.update();
+    for (const cb of loopCallbacks) cb();
+    renderer.render(scene, camera);
+
+    // FPS calc
+    frames++;
+    const now = performance.now();
+    if (now - lastTime >= 500) {
+      fps = Math.round(frames * 1000 / (now - lastTime));
+      frames = 0; lastTime = now;
+      document.getElementById('fps').textContent = fps;
+    }
+
+    // HUD
+    document.getElementById('cx').textContent = camera.position.x.toFixed(2);
+    document.getElementById('cy').textContent = camera.position.y.toFixed(2);
+    document.getElementById('cz').textContent = camera.position.z.toFixed(2);
+    document.getElementById('objs').textContent = scene.children.length;
+  }
+
+  loop();
+  console.log('[SceneCore] ✅ Pronto. Dev2: scene.add(model) | Dev3: addToLoop(fn)');
+
+  window.SceneCore = {
+    getScene:    () => scene,
+    getCamera:   () => camera,
+    getRenderer: () => renderer,
+    getControls: () => controls,
+    addToLoop:   (fn) => loopCallbacks.add(fn),
+    removeFromLoop: (fn) => loopCallbacks.delete(fn),
+  };
+</script>
+
+</body>
+</html>
