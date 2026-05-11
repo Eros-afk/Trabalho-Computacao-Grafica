@@ -1,13 +1,14 @@
 /**
  * scene-core.js — Kill: Cena Base
- * Responsabilidades:
+ * Dev 1 — Responsabilidades:
  *   - Setup do Three.js
  *   - Câmera + OrbitControls
  *   - Render loop
+ *   - Iluminação mínima (Dev 3 complementa)
  */
 
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const SceneCore = (() => {
   // Estado interno
@@ -41,20 +42,18 @@ const SceneCore = (() => {
     background: new THREE.Color(0xf5f0ea),
   };
 
-  // Setup
+  // ── Setup ──────────────────────────────────────────────────────────────────
+
   function initScene() {
     scene = new THREE.Scene();
     scene.background = CONFIG.background;
-
-    // Névoa leve
     scene.fog = new THREE.Fog(CONFIG.background, 15, 40);
   }
 
-  function initCamera(canvas) {
-    const aspect = canvas.clientWidth / canvas.clientHeight;
+  function initCamera(w, h) {
     camera = new THREE.PerspectiveCamera(
       CONFIG.camera.fov,
-      aspect,
+      w / h,
       CONFIG.camera.near,
       CONFIG.camera.far
     );
@@ -62,20 +61,19 @@ const SceneCore = (() => {
     camera.position.set(x, y, z);
   }
 
-  function initRenderer(canvas) {
+  function initRenderer(canvas, w, h) {
     renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: CONFIG.renderer.antialias,
     });
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    renderer.setSize(w, h, false);
 
-    // PBR + sombras
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = CONFIG.renderer.shadowMap;
-    renderer.outputColorSpace = CONFIG.renderer.outputColorSpace;
-    renderer.toneMapping = CONFIG.renderer.toneMapping;
+    renderer.shadowMap.type    = CONFIG.renderer.shadowMap;
+    renderer.outputColorSpace  = CONFIG.renderer.outputColorSpace;
+    renderer.toneMapping       = CONFIG.renderer.toneMapping;
     renderer.toneMappingExposure = CONFIG.renderer.toneMappingExposure;
   }
 
@@ -85,40 +83,58 @@ const SceneCore = (() => {
     const c = CONFIG.controls;
     controls.enableDamping = c.enableDamping;
     controls.dampingFactor = c.dampingFactor;
-    controls.minDistance = c.minDistance;
-    controls.maxDistance = c.maxDistance;
+    controls.minDistance   = c.minDistance;
+    controls.maxDistance   = c.maxDistance;
     controls.maxPolarAngle = c.maxPolarAngle;
     controls.target.set(c.target.x, c.target.y, c.target.z);
     controls.update();
   }
 
-  // Plano de chão
+  // ── Objetos base ───────────────────────────────────────────────────────────
+
   function addFloor() {
-    const geo = new THREE.PlaneGeometry(30, 30);
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0xe8e0d4,
-      roughness: 0.9,
-      metalness: 0.0,
-    });
-    const floor = new THREE.Mesh(geo, mat);
-    floor.rotation.x = -Math.PI / 2;
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(30, 30),
+      new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.9, metalness: 0 })
+    );
+    floor.rotation.x  = -Math.PI / 2;
     floor.receiveShadow = true;
     floor.name = 'floor';
     scene.add(floor);
   }
 
-  // Render loop
+  function addDefaultLighting() {
+    // Luz ambiente suave
+    const ambient = new THREE.AmbientLight(0xfff5e6, 0.5);
+    ambient.name = 'default_ambient';
+    scene.add(ambient);
+
+    // Luz direcional básica
+    const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+    sun.position.set(4, 8, 4);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.near   = 0.5;
+    sun.shadow.camera.far    = 30;
+    sun.shadow.camera.left   = -6;
+    sun.shadow.camera.right  =  6;
+    sun.shadow.camera.top    =  6;
+    sun.shadow.camera.bottom = -6;
+    sun.name = 'default_sun';
+    scene.add(sun);
+  }
+
+  // ── Render loop ────────────────────────────────────────────────────────────
+
   function loop() {
     animationId = requestAnimationFrame(loop);
     controls.update();
-    for (const cb of loopCallbacks) {
-      cb();
-    }
-
+    for (const cb of loopCallbacks) cb();
     renderer.render(scene, camera);
   }
 
-  // Resize handler
+  // ── Resize ─────────────────────────────────────────────────────────────────
+
   function onResize() {
     const canvas = renderer.domElement;
     const w = canvas.clientWidth;
@@ -131,18 +147,21 @@ const SceneCore = (() => {
     }
   }
 
-  // API pública
+  // ── API pública ────────────────────────────────────────────────────────────
+
   function init(canvasId = 'canvas3d') {
     const canvas = document.getElementById(canvasId);
-    if (!canvas) {
-      throw new Error(`[SceneCore] Canvas #${canvasId} não encontrado.`);
-    }
+    if (!canvas) throw new Error(`[SceneCore] Canvas #${canvasId} não encontrado.`);
+
+    const w = canvas.clientWidth  || canvas.parentElement.clientWidth  || window.innerWidth;
+    const h = canvas.clientHeight || canvas.parentElement.clientHeight || window.innerHeight;
 
     initScene();
-    initCamera(canvas);
-    initRenderer(canvas);
+    initCamera(w, h);
+    initRenderer(canvas, w, h);
     initControls(canvas);
     addFloor();
+    addDefaultLighting();
 
     window.addEventListener('resize', onResize);
 
@@ -164,13 +183,13 @@ const SceneCore = (() => {
   return {
     init,
     dispose,
-    getScene:    () => scene,
-    getCamera:   () => camera,
-    getRenderer: () => renderer,
-    getControls: () => controls,
-    addToLoop:       (fn) => loopCallbacks.add(fn),
-    removeFromLoop:  (fn) => loopCallbacks.delete(fn),
-    resize:      onResize,
+    getScene:      () => scene,
+    getCamera:     () => camera,
+    getRenderer:   () => renderer,
+    getControls:   () => controls,
+    addToLoop:     (fn) => loopCallbacks.add(fn),
+    removeFromLoop:(fn) => loopCallbacks.delete(fn),
+    resize:        onResize,
   };
 })();
 
