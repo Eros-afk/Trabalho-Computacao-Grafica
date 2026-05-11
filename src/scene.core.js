@@ -4,7 +4,7 @@
  *   - Setup do Three.js
  *   - Câmera + OrbitControls
  *   - Render loop
- *   - Iluminação mínima (Dev 3 complementa)
+ *   - Iluminação mínima
  */
 
 import * as THREE from 'three';
