@@ -45,6 +45,85 @@ function createSkybox(scene, THREE) {
   scene.add(ambientLight);
 }
 
+function createGroundShadow(scene, THREE) {
+  
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  
+  const ctx = canvas.getContext("2d");
+  
+  // Preencher com branco transparente
+  ctx.fillStyle = "rgba(255, 255, 255, 0)";
+  ctx.fillRect(0, 0, 512, 512);
+  
+  // Radial gradient (escuro no centro, transparente nas bordas)
+  const radialGradient = ctx.createRadialGradient(256, 256, 50, 256, 256, 256);
+  radialGradient.addColorStop(0, "rgba(0, 0, 0, 0.4)");        // Escuro no centro
+  radialGradient.addColorStop(0.5, "rgba(0, 0, 0, 0.1)");      // Média sombra
+  radialGradient.addColorStop(1, "rgba(0, 0, 0, 0)");          // Transparente nas bordas
+  
+  ctx.fillStyle = radialGradient;
+  ctx.fillRect(0, 0, 512, 512);
+  
+  const shadowTexture = new THREE.CanvasTexture(canvas);
+  shadowTexture.encoding = THREE.sRGBColorSpace;
+  
+  // Plano de sombra
+  const shadowGeometry = new THREE.PlaneGeometry(8, 4);
+  const shadowMaterial = new THREE.MeshBasicMaterial({
+    map: shadowTexture,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.FrontSide
+  });
+  
+  const shadowMesh = new THREE.Mesh(shadowGeometry, shadowMaterial);
+  shadowMesh.position.y = 0.02; // Levemente acima do chão para evitar z-fighting
+  shadowMesh.rotation.x = -Math.PI / 2;
+  
+  scene.add(shadowMesh);
+}
+
+function createVignetteOverlay(scene, camera, THREE) {
+  
+  const canvas = document.createElement("canvas");
+  canvas.width = 32;
+  canvas.height = 32;
+  
+  const ctx = canvas.getContext("2d");
+  
+  const radialGradient = ctx.createRadialGradient(128, 128, 50, 128, 128, 180);
+  radialGradient.addColorStop(0, "rgba(0, 0, 0, 0)");           // Transparente no centro
+  radialGradient.addColorStop(0.6, "rgba(0, 0, 0, 0.15)");     // Início do sombreado
+  radialGradient.addColorStop(1, "rgba(0, 0, 0, 0.4)");        // Escuro nas bordas
+  
+  ctx.fillStyle = radialGradient;
+  ctx.fillRect(0, 0, 256, 256);
+  
+  const vignetteTexture = new THREE.CanvasTexture(canvas);
+  
+  // Plano que acompanha a câmera
+  const vignetteGeometry = new THREE.PlaneGeometry(20, 20);
+  const vignetteMaterial = new THREE.MeshBasicMaterial({
+    map: vignetteTexture,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+    side: THREE.FrontSide
+  });
+  
+  const vignetteMesh = new THREE.Mesh(vignetteGeometry, vignetteMaterial);
+  
+  // Vignette como filho da câmera
+  // Assim ele se move e rotaciona junto com ela
+  vignetteMesh.position.z = -0.1;
+  camera.add(vignetteMesh);
+  
+  return vignetteMesh;
+}
+
+
 export async function init3DViewer(modelPath) {
   const modal = $("#viewer-3d");
   const container = $("#viewer-3d-canvas");
@@ -88,6 +167,7 @@ export async function init3DViewer(modelPath) {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0xfaf9f7, 1);
     container.appendChild(renderer.domElement);
     
     scene.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -107,6 +187,9 @@ export async function init3DViewer(modelPath) {
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
+    
+    // Sombra em baixo do objeto
+    createGroundShadow(scene, THREE);
     
     const loader = new GLTFLoader();
     originalMaterials = new Map();
@@ -128,13 +211,17 @@ export async function init3DViewer(modelPath) {
       const size = box.getSize(new THREE.Vector3());
       
       currentModel.position.sub(center);
-      currentModel.position.y = size.y / 2;
+      //currentModel.position.y = size.y / 2;
+      currentModel.position.y = 0;
       currentModel.scale.multiplyScalar(3 / Math.max(size.x, size.y, size.z));
       
       scene.add(currentModel);
     } catch (e) {
       console.error("Erro modelo:", e.message);
     }
+    
+    // Adicionar vignette na frente da camera
+    createVignetteOverlay(scene, camera, THREE);
     
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
