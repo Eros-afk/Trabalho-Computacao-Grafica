@@ -47,7 +47,7 @@ function createSkybox(scene, THREE) {
   ctx.fillRect(0, 0, 256, 256);
 
   const texture = new THREE.CanvasTexture(canvas);
-  texture.encoding = THREE.sRGBColorSpace;
+  texture.colorSpace = THREE.SRGBColorSpace;
 
   const skyboxGeometry = new THREE.SphereGeometry(500, 32, 32);
   const skyboxMaterial = new THREE.MeshBasicMaterial({
@@ -77,7 +77,7 @@ function createGroundShadow(scene, THREE) {
   ctx.fillRect(0, 0, 512, 512);
 
   const shadowTexture = new THREE.CanvasTexture(canvas);
-  shadowTexture.encoding = THREE.sRGBColorSpace;
+  shadowTexture.colorSpace = THREE.SRGBColorSpace;
 
   const shadowGeometry = new THREE.PlaneGeometry(8, 4);
   const shadowMaterial = new THREE.MeshBasicMaterial({
@@ -192,6 +192,7 @@ export async function init3DViewer(modelPath) {
     // ── Câmera ────────────────────────────────────────────────────────────
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
     camera.position.set(0, 1.5, 5);
+    scene.add(camera);
 
     // ── Renderer ──────────────────────────────────────────────────────────
     const renderer = new THREE.WebGLRenderer({ antialias: true });
