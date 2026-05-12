@@ -12,6 +12,39 @@ const customMaterials = {
   white: { color: 0xF5F5F5, roughness: 0.3, metalness: 0.0 }
 };
 
+function createSkybox(scene, THREE) {
+  
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  
+  const ctx = canvas.getContext("2d");
+  const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+  
+  gradient.addColorStop(0, "#d8bf94");    // Bege claro (topo)
+  gradient.addColorStop(0.5, "#E8DCC8");  // Bege médio
+  gradient.addColorStop(1, "#F5EFE1");    // Bege muito claro (horizonte)
+  
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 256, 256);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.encoding = THREE.sRGBColorSpace;
+
+  const skyboxGeometry = new THREE.SphereGeometry(500, 32, 32);
+  const skyboxMaterial = new THREE.MeshBasicMaterial({
+    map: texture,
+    side: THREE.BackSide,
+    depthWrite: false
+  });
+  
+  const skybox = new THREE.Mesh(skyboxGeometry, skyboxMaterial);
+  scene.add(skybox);
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
+}
+
 export async function init3DViewer(modelPath) {
   const modal = $("#viewer-3d");
   const container = $("#viewer-3d-canvas");
@@ -45,6 +78,9 @@ export async function init3DViewer(modelPath) {
     
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xfaf9f7);
+    
+    // Adicionar skybox
+    createSkybox(scene, THREE);
     
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
     camera.position.set(0, 2, 5);
