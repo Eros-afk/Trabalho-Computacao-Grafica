@@ -63,7 +63,10 @@ function loadFurniture(modelKey) {
 
     const box = new THREE.Box3().setFromObject(currentModel);
     const center = box.getCenter(new THREE.Vector3());
-    currentModel.position.sub(center);
+    currentModel.position.x -= center.x;
+    currentModel.position.z -= center.z;
+    currentModel.position.y -= box.min.y;
+0
 
     applyMaterial(activeMaterialType);
 
@@ -122,6 +125,19 @@ scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.enableZoom = false;
+
+// Zoom customizado (scroll suave sem orbitar)
+let lastDistance = camera.position.length();
+renderer.domElement.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 1.05 : 0.95;
+  const direction = camera.position.clone().normalize();
+  lastDistance *= delta;
+  lastDistance = Math.max(2, Math.min(15, lastDistance));
+  camera.position.copy(direction.multiplyScalar(lastDistance));
+}, { passive: false });
 
 function animate() {
   requestAnimationFrame(animate);
