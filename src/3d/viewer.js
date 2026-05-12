@@ -20,7 +20,7 @@ let viewer3D = null;
 let currentModel = null;
 let originalMaterials = null;
 
-// Callbacks do loop de animação (equivalente ao SceneCore.addToLoop)
+// Callbacks do loop de animação
 const _loopCallbacks = new Set();
 function _addToLoop(fn)    { _loopCallbacks.add(fn); }
 function _removeFromLoop(fn) { _loopCallbacks.delete(fn); }
@@ -32,6 +32,8 @@ const customMaterials = {
   leather: { color: 0x3d2314, roughness: 0.6, metalness: 0.0 },
   white:   { color: 0xF5F5F5, roughness: 0.3, metalness: 0.0 },
 };
+
+// ── Funções de ambiente e utilitários ───────────────────────────────────────
 
 function createSkybox(scene, THREE) {
   const canvas = document.createElement("canvas");
@@ -125,33 +127,7 @@ function createVignetteOverlay(scene, camera, THREE) {
   return vignetteMesh;
 }
 
-function createSpotlight(scene, THREE) {
-  const spotlight = new THREE.SpotLight(
-    0xffffff,
-    100,
-    1200,
-    Math.PI / 3,
-    0.8,
-    1
-  );
-
-  spotlight.position.set(0, 10, 5);
-  spotlight.target.position.set(0, 0.5, 0);
-  spotlight.castShadow = true;
-  spotlight.shadow.mapSize.width = 4096;
-  spotlight.shadow.mapSize.height = 4096;
-  spotlight.shadow.camera.near = 0.1;
-  spotlight.shadow.camera.far = 100;
-  spotlight.shadow.camera.fov = 60;
-
-  scene.add(spotlight);
-  scene.add(spotlight.target);
-
-  return spotlight;
-}
-
 // ── Init ────────────────────────────────────────────────────────────────────
-
 
 export async function init3DViewer(modelPath) {
   const modal     = $("#viewer-3d");
@@ -173,9 +149,9 @@ export async function init3DViewer(modelPath) {
   }
 
   try {
-    const THREE              = await import("three");
-    const { OrbitControls }  = await import("three/addons/controls/OrbitControls.js");
-    const { GLTFLoader }     = await import("three/addons/loaders/GLTFLoader.js");
+    const THREE             = await import("three");
+    const { OrbitControls } = await import("three/addons/controls/OrbitControls.js");
+    const { GLTFLoader }    = await import("three/addons/loaders/GLTFLoader.js");
 
     container.innerHTML = "";
 
@@ -186,7 +162,6 @@ export async function init3DViewer(modelPath) {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xfaf9f7);
 
-    // Adicionar skybox
     createSkybox(scene, THREE);
 
     // ── Câmera ────────────────────────────────────────────────────────────
@@ -216,7 +191,6 @@ export async function init3DViewer(modelPath) {
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Sombra em baixo do objeto
     createGroundShadow(scene, THREE);
 
     // ── Modelo GLTF ───────────────────────────────────────────────────────
@@ -236,25 +210,36 @@ export async function init3DViewer(modelPath) {
           originalMaterials.set(child.uuid, child.material.clone());
         }
       });
+      
+      currentModel.updateMatrixWorld(true);
 
-      const box    = new THREE.Box3().setFromObject(currentModel);
+      const box = new THREE.Box3();
+      currentModel.traverse((child) => {
+        if (child.isMesh) {
+          box.expandByObject(child);
+        }
+      });
+
+      if (box.isEmpty()) box.setFromObject(currentModel);
+
+      const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
-      const size   = box.getSize(new THREE.Vector3());
 
-      currentModel.position.sub(center);
-      currentModel.position.y = 0;
-      currentModel.scale.multiplyScalar(3 / Math.max(size.x, size.y, size.z));
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scaleFactor = maxDim > 0 ? (3 / maxDim) : 1;
+      
 
-      // Recalcula bounding box após escalar e ajusta somente a altura
-      const scaledBox = new THREE.Box3().setFromObject(currentModel);
-      currentModel.position.y -= scaledBox.min.y;
+      currentModel.scale.setScalar(scaleFactor);
+
+      currentModel.position.x = -center.x * scaleFactor;
+      currentModel.position.y = -box.min.y * scaleFactor;
+      currentModel.position.z = -center.z * scaleFactor;
 
       scene.add(currentModel);
     } catch (e) {
       console.error("[Viewer] Erro ao carregar modelo:", e.message);
     }
 
-    // Adicionar vignette na frente da camera
     createVignetteOverlay(scene, camera, THREE);
 
     // ── OrbitControls ─────────────────────────────────────────────────────
@@ -268,7 +253,7 @@ export async function init3DViewer(modelPath) {
     controls.maxPolarAngle  = Math.PI / 2 - 0.1;
     controls.autoRotate     = false;
 
-    // Zoom customizado (scroll suave sem orbitar)
+    // Zoom customizado
     let lastDistance = camera.position.length();
     renderer.domElement.addEventListener("wheel", (e) => {
       e.preventDefault();
@@ -290,25 +275,20 @@ export async function init3DViewer(modelPath) {
       removeFromLoop: _removeFromLoop,
     });
 
-    // Define o modelo-alvo das interações
     if (currentModel) setInteractionModel(currentModel);
 
-    // ── Salva referências globais do viewer ────────────────────────────────
     viewer3D = { scene, camera, renderer, controls, active: true, THREE };
 
-    // ── Loop de renderização ───────────────────────────────────────────────
     const animate = () => {
       if (!viewer3D || !viewer3D.active) return;
       requestAnimationFrame(animate);
       controls.update();
-      // Executa callbacks do Dev 3 (animações de giro, abertura, etc.)
       for (const cb of _loopCallbacks) cb();
       renderer.render(scene, camera);
     };
 
     animate();
 
-    // ── Resize ────────────────────────────────────────────────────────────
     const onResize = () => {
       const w = container.clientWidth  || 800;
       const h = container.clientHeight || 500;
@@ -325,15 +305,9 @@ export async function init3DViewer(modelPath) {
   }
 }
 
-// ── Fecha o viewer ──────────────────────────────────────────────────────────
-
 export function close3DViewer() {
-  // Dev 3: destrói interações antes de fechar
   destroyInteractions();
-
-  // Limpa callbacks de animação
   _loopCallbacks.clear();
-
   currentModel      = null;
   originalMaterials = null;
 
@@ -348,11 +322,8 @@ export function close3DViewer() {
   $("#viewer-3d").classList.add("hidden");
 }
 
-// ── Troca de material ───────────────────────────────────────────────────────
-
 function applyMaterial(materialType) {
   if (!currentModel || !viewer3D || !originalMaterials) return;
-
   const THREE = viewer3D.THREE;
 
   currentModel.traverse((child) => {
@@ -377,8 +348,6 @@ function applyMaterial(materialType) {
 }
 
 window.changeMaterial = applyMaterial;
-
-// ── Controles de material (UI) ──────────────────────────────────────────────
 
 function renderMaterialControls() {
   const controlsContainer = $("#viewer-3d-material-controls");

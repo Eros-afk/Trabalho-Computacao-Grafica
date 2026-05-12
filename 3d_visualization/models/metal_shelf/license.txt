@@ -1,0 +1,11 @@
+Model Information:
+* title:	Metal Shelf - 14MB
+* source:	https://sketchfab.com/3d-models/metal-shelf-14mb-dcfeeee32ddf4314aab77e99cf5114a0
+* author:	adventurer (https://sketchfab.com/ahmagh2e)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Metal Shelf - 14MB" (https://sketchfab.com/3d-models/metal-shelf-14mb-dcfeeee32ddf4314aab77e99cf5114a0) by adventurer (https://sketchfab.com/ahmagh2e) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
