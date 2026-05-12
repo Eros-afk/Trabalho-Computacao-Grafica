@@ -53,7 +53,7 @@ function createGroundShadow(scene, THREE) {
   
   const ctx = canvas.getContext("2d");
   
-  // Preencher com branco transparente
+  // Preenchimento com branco transparente
   ctx.fillStyle = "rgba(255, 255, 255, 0)";
   ctx.fillRect(0, 0, 512, 512);
   
@@ -123,6 +123,35 @@ function createVignetteOverlay(scene, camera, THREE) {
   return vignetteMesh;
 }
 
+function createSpotlight(scene, THREE) {
+  
+  const spotlight = new THREE.SpotLight(
+    0xffffff,          // Cor branca
+    100,                 // Intensidade
+    1200,               // Distância 
+    Math.PI / 3,       // Ângulo 
+    0.8,               // Penumbra
+    1                  // Decay
+  );
+  
+  // Posição
+  spotlight.position.set(0, 10, 5);
+  spotlight.target.position.set(0, 0.5, 0);
+  
+  // Sombras
+  spotlight.castShadow = true;
+  spotlight.shadow.mapSize.width = 4096;
+  spotlight.shadow.mapSize.height = 4096;
+  spotlight.shadow.camera.near = 0.1;
+  spotlight.shadow.camera.far = 100;
+  spotlight.shadow.camera.fov = 60;
+  
+  scene.add(spotlight);
+  scene.add(spotlight.target);
+  
+  return spotlight;
+}
+
 
 export async function init3DViewer(modelPath) {
   const modal = $("#viewer-3d");
@@ -170,7 +199,7 @@ export async function init3DViewer(modelPath) {
     renderer.setClearColor(0xfaf9f7, 1);
     container.appendChild(renderer.domElement);
     
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.05));
     
     const light = new THREE.DirectionalLight(0xffffff, 2);
     light.position.set(5, 5, 5);
@@ -179,6 +208,9 @@ export async function init3DViewer(modelPath) {
     const fill = new THREE.DirectionalLight(0xffffff, 0.5);
     fill.position.set(-5, 3, -5);
     scene.add(fill);
+
+    // Spotlight em cima do objeto
+    createSpotlight(scene, THREE);
     
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(10, 10),
