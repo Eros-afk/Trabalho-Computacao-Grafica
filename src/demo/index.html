@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kill — Cena Base | Móveis 3D</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #1a1714;
+      font-family: 'Courier New', monospace;
+      color: #c8bfb0;
+    }
+
+    body { display: flex; flex-direction: column; }
+
+    header {
+      flex-shrink: 0;
+      padding: 12px 20px;
+      background: #111;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 40px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    header .tag {
+      background: #4ade80;
+      color: #000;
+      padding: 2px 8px;
+      border-radius: 2px;
+      font-weight: 700;
+      font-size: 30px;
+    }
+    header .title    { color: #fff; font-size: 30px; }
+    header .subtitle { color: #666; margin-left: auto; }
+
+    .canvas-wrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #canvas3d {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hud {
+      position: absolute;
+      top: 16px; left: 16px;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 60px 70px;
+      font-size: 40px;
+      line-height: 1.8;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .hud .label { color: #ffffff; }
+    .hud .val   { color: #4ade80; margin-left: 4px; }
+
+    .controls-hint {
+      position: absolute;
+      bottom: 16px; right: 16px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      border: 1px solid #2a2a2a;
+      border-radius: 4px;
+      padding: 60px 70px;
+      font-size: 40px;
+      line-height: 1.9;
+      color: #4ade80;
+      z-index: 10;
+    }
+    .controls-hint kbd {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-family: inherit;
+      font-size: 40px;
+      color: #ffffff;
+    }
+
+    footer {
+      flex-shrink: 0;
+      padding: 8px 20px;
+      background: #111;
+      border-top: 1px solid #222;
+      font-size: 30px;
+      color: #444;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    footer span { color: #4ade80; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="tag">Kill</div>
+  <div class="title">Cena Base — Three.js</div>
+  <div class="subtitle">Ecommerce de Móveis 3D</div>
+</header>
+
+<div class="canvas-wrapper">
+  <canvas id="canvas3d"></canvas>
+
+  <div class="hud">
+    <div><span class="label">câmera x:</span><span class="val" id="cx">—</span></div>
+    <div><span class="label">câmera y:</span><span class="val" id="cy">—</span></div>
+    <div><span class="label">câmera z:</span><span class="val" id="cz">—</span></div>
+    <div><span class="label">objetos na cena:</span><span class="val" id="objs">—</span></div>
+    <div><span class="label">fps:</span><span class="val" id="fps">—</span></div>
+  </div>
+
+  <div class="controls-hint">
+    <div><kbd>clique + arraste</kbd> — orbitar</div>
+    <div><kbd>scroll</kbd> — zoom</div>
+    <div><kbd>shift + arraste</kbd> — pan</div>
+  </div>
+</div>
+
+<footer>
+  <div>THREE.js <span>r128</span></div>
+  <div>OrbitControls <span>ativo</span></div>
+  <div>Shadows <span>PCFSoft</span></div>
+  <div>ToneMapping <span>ACESFilmic</span></div>
+  <div>Dev2 → <span>SceneCore.getScene()</span></div>
+  <div>Dev3 → <span>SceneCore.addToLoop(fn)</span></div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// ── OrbitControls embutido (sem import) ──────────────────────────────────
+THREE.OrbitControls = function(object, domElement) {
+  this.object = object;
+  this.domElement = domElement;
+  this.enabled = true;
+  this.target = new THREE.Vector3();
+  this.minDistance = 0;
+  this.maxDistance = Infinity;
+  this.minPolarAngle = 0;
+  this.maxPolarAngle = Math.PI;
+  this.enableDamping = false;
+  this.dampingFactor = 0.05;
+  this.enableZoom = true;
+  this.zoomSpeed = 1.0;
+  this.enableRotate = true;
+  this.rotateSpeed = 1.0;
+  this.enablePan = true;
+  this.panSpeed = 1.0;
+
+  var scope = this;
+  var STATE = { NONE:-1, ROTATE:0, DOLLY:1, PAN:2 };
+  var state = STATE.NONE;
+  var EPS = 0.000001;
+  var spherical = new THREE.Spherical();
+  var sphericalDelta = new THREE.Spherical();
+  var scale = 1;
+  var panOffset = new THREE.Vector3();
+  var rotateStart = new THREE.Vector2();
+  var rotateEnd   = new THREE.Vector2();
+  var rotateDelta = new THREE.Vector2();
+  var panStart = new THREE.Vector2();
+  var panEnd   = new THREE.Vector2();
+  var panDelta = new THREE.Vector2();
+  var dollyStart = new THREE.Vector2();
+  var dollyEnd   = new THREE.Vector2();
+
+  function getZoomScale() { return Math.pow(0.95, scope.zoomSpeed); }
+  function rotateLeft(a)  { sphericalDelta.theta -= a; }
+  function rotateUp(a)    { sphericalDelta.phi   -= a; }
+
+  var _panL = new THREE.Vector3();
+  function panLeft(dist, mat) {
+    _panL.setFromMatrixColumn(mat, 0).multiplyScalar(-dist);
+    panOffset.add(_panL);
+  }
+  var _panU = new THREE.Vector3();
+  function panUp(dist, mat) {
+    _panU.setFromMatrixColumn(mat, 1).multiplyScalar(dist);
+    panOffset.add(_panU);
+  }
+  var _panV = new THREE.Vector3();
+  function pan(dx, dy) {
+    _panV.copy(scope.object.position).sub(scope.target);
+    var td = _panV.length() * Math.tan(scope.object.fov / 2 * Math.PI / 180);
+    panLeft(2 * dx * td / scope.domElement.clientHeight, scope.object.matrix);
+    panUp  (2 * dy * td / scope.domElement.clientHeight, scope.object.matrix);
+  }
+  function dollyIn(s)  { scale /= s; }
+  function dollyOut(s) { scale *= s; }
+
+  this.update = (function() {
+    var offset   = new THREE.Vector3();
+    var quat     = new THREE.Quaternion().setFromUnitVectors(object.up, new THREE.Vector3(0,1,0));
+    var quatInv  = quat.clone().invert();
+    var lastPos  = new THREE.Vector3();
+    var lastQuat = new THREE.Quaternion();
+    return function() {
+      var pos = scope.object.position;
+      offset.copy(pos).sub(scope.target);
+      offset.applyQuaternion(quat);
+      spherical.setFromVector3(offset);
+      spherical.theta += sphericalDelta.theta;
+      spherical.phi   += sphericalDelta.phi;
+      spherical.phi    = Math.max(scope.minPolarAngle, Math.min(scope.maxPolarAngle, spherical.phi));
+      spherical.makeSafe();
+      spherical.radius *= scale;
+      spherical.radius  = Math.max(scope.minDistance, Math.min(scope.maxDistance, spherical.radius));
+      scope.target.add(panOffset);
+      offset.setFromSpherical(spherical).applyQuaternion(quatInv);
+      pos.copy(scope.target).add(offset);
+      scope.object.lookAt(scope.target);
+      if (scope.enableDamping) {
+        sphericalDelta.theta *= (1 - scope.dampingFactor);
+        sphericalDelta.phi   *= (1 - scope.dampingFactor);
+        panOffset.multiplyScalar(1 - scope.dampingFactor);
+      } else {
+        sphericalDelta.set(0,0,0);
+        panOffset.set(0,0,0);
+      }
+      scale = 1;
+      lastPos.copy(scope.object.position);
+      lastQuat.copy(scope.object.quaternion);
+    };
+  })();
+
+  function onMouseDown(e) {
+    if (!scope.enabled) return;
+    e.preventDefault();
+    if (e.button === 0) {
+      if (e.shiftKey) { state = STATE.PAN;    panStart.set(e.clientX, e.clientY); }
+      else            { state = STATE.ROTATE; rotateStart.set(e.clientX, e.clientY); }
+    } else if (e.button === 2) {
+      state = STATE.PAN; panStart.set(e.clientX, e.clientY);
+    }
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup',   onMouseUp);
+  }
+  function onMouseMove(e) {
+    if (!scope.enabled) return;
+    if (state === STATE.ROTATE) {
+      rotateEnd.set(e.clientX, e.clientY);
+      rotateDelta.subVectors(rotateEnd, rotateStart).multiplyScalar(scope.rotateSpeed);
+      rotateLeft(2 * Math.PI * rotateDelta.x / scope.domElement.clientHeight);
+      rotateUp  (2 * Math.PI * rotateDelta.y / scope.domElement.clientHeight);
+      rotateStart.copy(rotateEnd);
+    } else if (state === STATE.PAN) {
+      panEnd.set(e.clientX, e.clientY);
+      panDelta.subVectors(panEnd, panStart).multiplyScalar(scope.panSpeed);
+      pan(panDelta.x, panDelta.y);
+      panStart.copy(panEnd);
+    }
+    scope.update();
+  }
+  function onMouseUp() {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup',   onMouseUp);
+    state = STATE.NONE;
+  }
+  function onWheel(e) {
+    if (!scope.enabled || !scope.enableZoom) return;
+    e.preventDefault();
+    if (e.deltaY < 0) dollyOut(getZoomScale());
+    else              dollyIn (getZoomScale());
+    scope.update();
+  }
+
+  domElement.addEventListener('mousedown',   onMouseDown);
+  domElement.addEventListener('wheel',       onWheel, { passive: false });
+  domElement.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+};
+</script>
+
+<script>
+  var loopCallbacks = [];
+  var canvas  = document.getElementById('canvas3d');
+  var wrapper = canvas.parentElement;
+
+  // ── Cena ─────────────────────────────────────────────────────────────────
+  var bgColor = new THREE.Color(0xf5f0ea);
+  var scene   = new THREE.Scene();
+  scene.background = bgColor;
+  scene.fog = new THREE.Fog(bgColor, 15, 40);
+
+  // ── Câmera ───────────────────────────────────────────────────────────────
+  var W = wrapper.clientWidth  || window.innerWidth;
+  var H = wrapper.clientHeight || window.innerHeight;
+  var camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 100);
+  camera.position.set(3, 2.5, 5);
+
+  // ── Renderer ─────────────────────────────────────────────────────────────
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(W, H, false);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+  renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+
+  // ── OrbitControls ────────────────────────────────────────────────────────
+  var controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance   = 1;
+  controls.maxDistance   = 20;
+  controls.maxPolarAngle = Math.PI / 2 - 0.05;
+  controls.target.set(0, 0.5, 0);
+  controls.update();
+
+  // ── Chão ─────────────────────────────────────────────────────────────────
+  var floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(30, 30),
+    new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.9, metalness: 0 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // ── Cadeira ──────────────────────────────────────────────────────────────
+  var woodMat = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.7, metalness: 0.1 });
+  var darkMat = new THREE.MeshStandardMaterial({ color: 0x5a3e28, roughness: 0.6, metalness: 0.2 });
+
+  var seat = new THREE.Mesh(new THREE.BoxGeometry(1, 0.1, 1), woodMat);
+  seat.position.set(0, 0.45, 0);
+  seat.castShadow = seat.receiveShadow = true;
+  scene.add(seat);
+
+  var back = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 0.1), woodMat);
+  back.position.set(0, 0.9, -0.45);
+  back.castShadow = back.receiveShadow = true;
+  scene.add(back);
+
+  var legGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.44);
+  [[-0.4,-0.4],[0.4,-0.4],[-0.4,0.4],[0.4,0.4]].forEach(function(xz) {
+    var leg = new THREE.Mesh(legGeo, darkMat);
+    leg.position.set(xz[0], 0.22, xz[1]);
+    leg.castShadow = true;
+    scene.add(leg);
+  });
+
+  // ── Iluminação ───────────────────────────────────────────────────────────
+  scene.add(new THREE.AmbientLight(0xfff5e6, 0.8));
+
+  var sun = new THREE.DirectionalLight(0xfff0d0, 2.0);
+  sun.position.set(4, 8, 4);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.near   = 0.5;
+  sun.shadow.camera.far    = 30;
+  sun.shadow.camera.left   = -6;
+  sun.shadow.camera.right  =  6;
+  sun.shadow.camera.top    =  6;
+  sun.shadow.camera.bottom = -6;
+  scene.add(sun);
+
+  var fill = new THREE.DirectionalLight(0xd0e8ff, 0.5);
+  fill.position.set(-4, 3, -4);
+  scene.add(fill);
+
+  // ── Resize ───────────────────────────────────────────────────────────────
+  window.addEventListener('resize', function() {
+    var w = wrapper.clientWidth;
+    var h = wrapper.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  });
+
+  // ── Loop ─────────────────────────────────────────────────────────────────
+  var lastTime = performance.now(), frames = 0, fps = 0;
+
+  function loop() {
+    requestAnimationFrame(loop);
+    controls.update();
+    loopCallbacks.forEach(function(cb) { cb(); });
+    renderer.render(scene, camera);
+
+    frames++;
+    var now = performance.now();
+    if (now - lastTime >= 500) {
+      fps = Math.round(frames * 1000 / (now - lastTime));
+      frames = 0; lastTime = now;
+      document.getElementById('fps').textContent = fps;
+    }
+
+    document.getElementById('cx').textContent   = camera.position.x.toFixed(2);
+    document.getElementById('cy').textContent   = camera.position.y.toFixed(2);
+    document.getElementById('cz').textContent   = camera.position.z.toFixed(2);
+    document.getElementById('objs').textContent = scene.children.length;
+  }
+
+  loop();
+  console.log('[SceneCore] ✅ Pronto.');
+
+  window.SceneCore = {
+    getScene:       function() { return scene; },
+    getCamera:      function() { return camera; },
+    getRenderer:    function() { return renderer; },
+    getControls:    function() { return controls; },
+    addToLoop:      function(fn) { loopCallbacks.push(fn); },
+    removeFromLoop: function(fn) {
+      loopCallbacks = loopCallbacks.filter(function(cb) { return cb !== fn; });
+    },
+  };
+</script>
+
+</body>
+</html>

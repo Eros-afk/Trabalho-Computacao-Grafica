@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VideoBoard Móveis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+
+<body>
+  <header id="navbar"></header>
+  <main id="main"></main>
+  <footer id="footer"></footer>
+
+  <div id="viewer-3d" class="viewer-3d-modal hidden">
+    <div class="viewer-3d-content">
+      <div class="viewer-3d-header">
+        <span class="viewer-3d-title">Visualização 3D</span>
+        <button class="viewer-3d-close" onclick="closeViewer()">×</button>
+      </div>
+      <div class="viewer-3d-viewer">
+        <div id="viewer-3d-canvas"></div>
+        <div id="viewer-3d-material-controls"></div>
+      </div>
+      <div class="viewer-3d-controls">
+        <div class="viewer-3d-hint">
+          <span>🖱️ Arraste para rotacionar</span>
+          <span>🖱️ Scroll para zoom</span>
+          <span>🖱️ Botão direito para mover</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+
+</html>

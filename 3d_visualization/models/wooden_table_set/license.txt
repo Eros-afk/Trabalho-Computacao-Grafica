@@ -1,0 +1,11 @@
+Model Information:
+* title:	Wooden Table Set
+* source:	https://sketchfab.com/3d-models/wooden-table-set-c4e50622f76949ecb6e2fb43c246bc2d
+* author:	Ren Viro Store (https://sketchfab.com/renviros)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Wooden Table Set" (https://sketchfab.com/3d-models/wooden-table-set-c4e50622f76949ecb6e2fb43c246bc2d) by Ren Viro Store (https://sketchfab.com/renviros) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
