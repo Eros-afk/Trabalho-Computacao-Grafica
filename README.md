@@ -11,7 +11,7 @@
 
 Este projeto foi desenvolvido para o Trabalho Prático 1 da disciplina de Computação Gráfica. É uma ferramenta de e-commerce voltada para o setor de mobília e decoração, que permite que o usuário visualize e personalize os produtos em um ambiente tridimensional.
 
-O objetivo central é evitar o problema de devoluções e insatisfação na compra online, oferecendo um visualizador de alta fidelidade no qual é possível analisar o formato e/ou modelo, testar combinações de móveis e visualizar a incidência de luz antes da aquisição do produto.
+O objetivo central é evitar o problema de devoluções e insatisfação na compra online, oferecendo um visualizador de alta fidelidade no qual é possível analisar o formato e/ou modelo e visualizar a incidência de luz antes da aquisição do produto.
 
 ---
 
