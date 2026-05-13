@@ -199,7 +199,7 @@ export async function init3DViewer(modelPath) {
 
     try {
       const gltf = await loader.loadAsync(
-        `./3d_visualization/models/${modelPath}/scene.gltf`
+        `./public/models/${modelPath}/scene.gltf`
       );
       currentModel = gltf.scene;
 

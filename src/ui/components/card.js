@@ -1,4 +1,4 @@
-import { fmt } from "../utils/dom.js";
+import { fmt } from "../../utils/dom.js";
 
 export function renderProductCard(product, navigateFn) {
   return `

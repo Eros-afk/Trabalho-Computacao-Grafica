@@ -1,6 +1,6 @@
-import { getProductById } from "../data/products.js";
-import { setHTML, fmt } from "../utils/dom.js";
-import { navigate } from "../utils/navigation.js";
+import { getProductById } from "../../data/products.js";
+import { setHTML, fmt } from "../../utils/dom.js";
+import { navigate } from "../../utils/navigation.js";
 
 export function renderProduct(productId) {
   const product = getProductById(productId);

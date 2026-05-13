@@ -1,9 +1,9 @@
-import { renderNavbar } from "./components/navbar.js";
-import { renderFooter } from "./components/footer.js";
-import { renderHome } from "./pages/home.js";
-import { renderCatalog } from "./pages/catalog.js";
-import { renderProduct } from "./pages/product.js";
-import { renderNotFound } from "./pages/notFound.js";
+import { renderNavbar } from "./ui/components/navbar.js";
+import { renderFooter } from "./ui/components/footer.js";
+import { renderHome } from "./ui/pages/home.js";
+import { renderCatalog } from "./ui/pages/catalog.js";
+import { renderProduct } from "./ui/pages/product.js";
+import { renderNotFound } from "./ui/pages/notFound.js";
 import { navigate, setRouteCallback, initNavigation, getCurrentPath, resetNavigationFlag } from "./utils/navigation.js";
 import { init3DViewer, close3DViewer } from "./3d/viewer.js";
 

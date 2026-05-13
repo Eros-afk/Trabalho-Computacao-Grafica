@@ -1,5 +1,5 @@
-import { setHTML } from "../utils/dom.js";
-import { navigate } from "../utils/navigation.js";
+import { setHTML } from "../../utils/dom.js";
+import { navigate } from "../../utils/navigation.js";
 
 export function renderNotFound() {
   setHTML("#main", `

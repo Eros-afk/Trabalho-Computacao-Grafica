@@ -1,6 +1,6 @@
-import { products } from "../data/products.js";
-import { setHTML, $$, $ } from "../utils/dom.js";
-import { navigate } from "../utils/navigation.js";
+import { products } from "../../data/products.js";
+import { setHTML, $$, $ } from "../../utils/dom.js";
+import { navigate } from "../../utils/navigation.js";
 import { renderProductCard } from "../components/card.js";
 
 function createCarouselCards(allProducts) {

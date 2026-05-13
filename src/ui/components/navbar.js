@@ -1,5 +1,5 @@
-import { setHTML } from "../utils/dom.js";
-import { navigate, getCurrentPath } from "../utils/navigation.js";
+import { setHTML } from "../../utils/dom.js";
+import { navigate, getCurrentPath } from "../../utils/navigation.js";
 
 export function renderNavbar() {
   const path = getCurrentPath();

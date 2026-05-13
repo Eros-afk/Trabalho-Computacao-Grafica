@@ -39,12 +39,36 @@ O objetivo central é evitar o problema de devoluções e insatisfação na comp
    cd Trabalho-Computacao-Grafica
 ```
 
-3. Para a correta visualização dos modelos 3D (devido às restrições de CORS), execute o projeto através de um servidor local. Caso utilize o VS Code, recomenda-se a extensão "Live Server". Alternativamente, via Node.js, use:
+3. Para a correta visualização dos modelos 3D (devido às restrições de CORS), execute o projeto através de um servidor local:
+```bash
+   npm run dev
+```
+
+4. Acesse `http://localhost:5173/` no navegador.
+
+Também é possível usar a extensão "Live Server" do VS Code ou outro servidor estático, como:
 ```bash
    npx serve .
 ```
 
-4. Acesse o endereço indicado no terminal no seu navegador.
+## Organização das Pastas
+
+```text
+.
+├── index.html              # Entrada principal da aplicação
+├── public/
+│   └── models/             # Modelos 3D, texturas, .bin e licenças
+└── src/
+    ├── 3d/                 # Cena, viewer, luzes e interações Three.js
+    ├── data/               # Dados dos produtos
+    ├── demo/               # Demonstrações isoladas
+    ├── ui/
+    │   ├── components/     # Navbar, footer e cards
+    │   ├── pages/          # Home, catálogo, produto e 404
+    │   └── styles.css      # Estilos da interface
+    ├── utils/              # Funções auxiliares de DOM e navegação
+    └── app.js              # Inicialização e roteamento
+```
 
 ## Licença
 
