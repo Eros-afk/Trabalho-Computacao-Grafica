@@ -73,3 +73,9 @@ Também é possível usar a extensão "Live Server" do VS Code ou outro servidor
 ## Licença
 
 Projeto acadêmico sem fins comerciais — UFC, 2026.
+
+## Imagens
+
+<img src="./images/Captura de tela de 2026-05-20 12-35-12.png">
+<img src="./images/Captura de tela de 2026-05-20 12-41-10.png">
+<img src="./images/Captura de tela de 2026-05-20 12-41-29.png">
